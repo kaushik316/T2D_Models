@@ -9,6 +9,8 @@ __pycache__/
 # Distribution / packaging
 .Python
 env/
+
+
 build/
 develop-eggs/
 dist/
@@ -24,6 +26,8 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -45,6 +49,7 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
+.pytest_cache/
 
 # Translations
 *.mo
@@ -53,6 +58,10 @@ coverage.xml
 # Django stuff:
 *.log
 local_settings.py
+<<<<<<< HEAD
+=======
+db.sqlite3
+
 
 # Flask stuff:
 instance/
@@ -87,6 +96,16 @@ celerybeat-schedule
 venv/
 ENV/
 
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -99,6 +118,7 @@ ENV/
 
 # mypy
 .mypy_cache/
+
 
 # virtualenv
 /bin
