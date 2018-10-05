@@ -142,6 +142,6 @@ org.freedesktop.dbus-session.plist
 
 # .pyc
 * .pyc
-* .DS_Store
+.DS_Store
 
 
