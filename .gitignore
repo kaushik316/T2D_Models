@@ -127,10 +127,21 @@ venv.bak/
 /lib
 /share
 /ssl
+/doc
+/etc
+/libexec
+/mkspecs
+/phrasebooks
+/plugins
+/qml
+/resources
+/translations
+org.freedesktop.dbus-session.plist
+
+ 
 
 # .pyc
 * .pyc
 * .DS_Store
-
 
 
