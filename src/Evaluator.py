@@ -1,4 +1,3 @@
-
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import StratifiedKFold
@@ -13,7 +12,6 @@ Class for model evaluation - see precision, recall and accuracy
 metrics along with plots summarizing performance. All model params
 accept sklearn objects and all X and y params are array-like.
 '''
-
 class Evaluator(object):
 
     def __init__(self):
@@ -24,8 +22,8 @@ class Evaluator(object):
     Predict class using a model that predicts probabilities
     with a user defined threshold for classification
     '''
-    def predict_class(self, model, Xtest, threshold):
-        logits = model.predict_proba(Xtest)
+    def predict_class(self, model, X, threshold):
+        logits = model.predict_proba(X)
         predictions = [1 if float(sample[1]) > threshold else 0 for sample in logits]
         return predictions
 
@@ -63,15 +61,23 @@ class Evaluator(object):
         plt.ylabel("features")
         plt.show()
 
+        return names[:-n]
+
 
     '''
     Display ROC curve and AUC for a given model
     '''
-    def plot_roc_curve(self, model, Xtest, ytest):
+    def plot_roc_curve(self, model, X, y, proba=True):
         # calculate the fpr and tpr for all thresholds of the classification
-        probs = model.predict_proba(Xtest)
+
+        if proba:
+            probs = model.predict_proba(X)
+
+        else:
+            probs = model.predict(X)
+
         preds = probs[:,1]
-        fpr, tpr, threshold = roc_curve(ytest, preds)
+        fpr, tpr, threshold = roc_curve(y, preds)
         roc_auc = auc(fpr, tpr)
 
         # method I: plt
@@ -101,7 +107,7 @@ class Evaluator(object):
         plt.figure()
         plt.xlabel("Number of features selected")
         plt.ylabel("Cross validation score (nb of correct classifications)")
-        plt.plot(range(1, len(rfecv.grid_scores_) + 1), rfecv.grid_scores_)
+        plt.plot(range(1, rfecv.n_features_+ 1, step), rfecv.grid_scores_)
         plt.show()
 
         return rfecv
