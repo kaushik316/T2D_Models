@@ -10,17 +10,17 @@ from matplotlib import pyplot as plt
 '''
 Class for model evaluation - see precision, recall and accuracy
 metrics along with plots summarizing performance. All model params
-accept sklearn objects and all X and y params are array-like.
+accept sklearn objects and all X and y params are multidimensional
+numpy arrays or pandas dataframes.
 '''
 class Evaluator(object):
 
     def __init__(self):
         self.name = None
 
-
     '''
-    Predict class using a model that predicts probabilities
-    with a user defined threshold for classification
+    Predict class using an sklearn model with predict_proba attr.
+    Can use a user defined threshold for classification.
     '''
     def predict_class(self, model, X, threshold):
         logits = model.predict_proba(X)
@@ -45,7 +45,7 @@ class Evaluator(object):
 
 
     '''    
-    Pass model coefficents and feature names to see most important features 
+    Pass model coefficents and feature names to plot most important features 
     '''
     def feat_importance(self, scores, names, n=10, one_dim=True):
         imp = scores
@@ -68,8 +68,6 @@ class Evaluator(object):
     Display ROC curve and AUC for a given model
     '''
     def plot_roc_curve(self, model, X, y, proba=True):
-        # calculate the fpr and tpr for all thresholds of the classification
-
         if proba:
             probs = model.predict_proba(X)
             preds = probs[:,1]
@@ -82,7 +80,6 @@ class Evaluator(object):
         fpr, tpr, threshold = roc_curve(y, preds)
         roc_auc = auc(fpr, tpr)
 
-        # method I: plt
         plt.title('Receiver Operating Characteristic\n')
         plt.plot(fpr, tpr, 'b', label = 'AUC = %0.2f' % roc_auc)
         plt.legend(loc = 'lower right')
@@ -95,9 +92,9 @@ class Evaluator(object):
 
 
     '''
-    Takes a model and recursively elimiates features based on 
-    importance. Step param controls number of features dropped
-    at each iteration.
+    Takes a model and recursively elimiates features based on importance,
+    with regard to the scoring metric evaluated at each iteration. Step
+    param controls number of features dropped at each iteration.
     '''
     def recursive_elim(self, model, X, y, step=10, cv=StratifiedKFold(2), scoring='recall'):
         rfecv = RFECV(estimator=model, step=step, cv=cv, scoring=scoring)
