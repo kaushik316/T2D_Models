@@ -45,7 +45,7 @@ class Evaluator(object):
 
 
     '''    
-    Pass coefficents and feature names to see most important features 
+    Pass model coefficents and feature names to see most important features 
     '''
     def feat_importance(self, scores, names, n=10, one_dim=True):
         imp = scores
@@ -72,11 +72,13 @@ class Evaluator(object):
 
         if proba:
             probs = model.predict_proba(X)
+            preds = probs[:,1]
 
         else:
             probs = model.predict(X)
+            preds = probs
 
-        preds = probs[:,1]
+
         fpr, tpr, threshold = roc_curve(y, preds)
         roc_auc = auc(fpr, tpr)
 
