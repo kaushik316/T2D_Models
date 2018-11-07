@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import itertools
 from sklearn.model_selection import StratifiedKFold
 from sklearn.feature_selection import RFECV
 from sklearn.metrics import roc_curve, auc
@@ -20,7 +21,11 @@ class Evaluator(object):
 
     '''
     Predict class using an sklearn model with predict_proba attr.
-    Can use a user defined threshold for classification.
+
+    Params:
+    model: Sklearn model object
+    X: Array-like
+    threshold: Float 
     '''
     def predict_class(self, model, X, threshold):
         logits = model.predict_proba(X)
@@ -29,7 +34,15 @@ class Evaluator(object):
 
 
     '''
-    Summarize model performance with precision and recall statistics
+    Summarize model performance with precision and recall statistics.
+    Use proba to indicate if predictions are probablities.
+
+    Params:
+    model: sklearn model object
+    X: Array-like 
+    y: Array-like
+    threshold: float
+    proba: Boolean 
     '''
     def summarize_performance(self, model, X, y, threshold=0.5, proba=True):
         if proba:
@@ -45,7 +58,15 @@ class Evaluator(object):
 
 
     '''    
-    Pass model coefficents and feature names to plot most important features 
+    Pass model coefficents and feature names to plot the n most 
+    important features. Use one_dim to specify dimensionality of 
+    scores vector. 
+
+    Params:
+    scores: Array-like
+    names: Array-like
+    n: Integer 
+    one_dim: Boolean
     '''
     def feat_importance(self, scores, names, n=10, one_dim=True):
         imp = scores
@@ -65,17 +86,31 @@ class Evaluator(object):
 
 
     '''
-    Display ROC curve and AUC for a given model
+    Display ROC curve and AUC for a given model. Use proba
+    to specify whether the model is 
+
+    Params:
+    model: Sklearn or Xgboost model object
+    X: Array-like
+    y: Array-like
+    proba: Boolean
+    model_type: String ('sklearn' or 'xgboost')
     '''
-    def plot_roc_curve(self, model, X, y, proba=True):
-        if proba:
-            probs = model.predict_proba(X)
-            preds = probs[:,1]
+    def plot_roc_curve(self, model, X, y, proba=True, model_type='sklearn'):
+
+        if model_type == 'sklearn':
+            if proba:
+                probs = model.predict_proba(X)
+                preds = probs[:,1]
+
+            else:
+                preds = model.predict(X)
+
+        elif model_type =='xgboost':
+            preds = model.predict(X)
 
         else:
-            probs = model.predict(X)
-            preds = probs
-
+            raise ValueError('Only allowed model types are sklearn and xgboost')
 
         fpr, tpr, threshold = roc_curve(y, preds)
         roc_auc = auc(fpr, tpr)
@@ -91,10 +126,67 @@ class Evaluator(object):
         plt.show()
 
 
+    """
+    This function prints and plots the confusion matrix. 
+    Normalization can be applied by setting `normalize=True`.
+
+    Params: 
+    cm: Sklearn confusion matrix object
+    classes: Array-like sequence of labels
+    normalize: Boolean
+    title: String 
+    cmap: Color scheme for matrix
+    """
+    def plot_confusion_matrix(self, cm, classes, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues):
+        plt.imshow(cm, interpolation='nearest', cmap=cmap)
+        plt.title(title)
+        plt.colorbar()
+        tick_marks = np.arange(len(classes))
+        plt.xticks(tick_marks, classes, rotation=45)
+        plt.yticks(tick_marks, classes)
+
+        if normalize:
+            cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        thresh = cm.max() / 2.
+        for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+            plt.text(j, i, cm[i, j],
+                     horizontalalignment="center",
+                     color="white" if cm[i, j] > thresh else "black")
+
+        plt.tight_layout()
+        plt.ylabel('True label')
+        plt.xlabel('Predicted label')
+        plt.show()
+
+
+    """
+    Prints precision, recall and fallout for a confusion matrix
+
+    Params:
+    cm: Sklearn confusion matrix object
+    """
+    def summarize_cmatrix(self, cm):
+        tp = cm[1,1]
+        fn = cm[1,0]
+        fp = cm[0,1]
+        tn = cm[0,0]
+        print('Precision =     {:.3f}'.format(tp/(tp+fp)))
+        print('Recall (TPR) =  {:.3f}'.format(tp/(tp+fn)))
+        print('Fallout (FPR) = {:.3e}'.format(fp/(fp+tn)))
+        return tp/(tp+fp), tp/(tp+fn), fp/(fp+tn)
+
+
     '''
     Takes a model and recursively elimiates features based on importance,
     with regard to the scoring metric evaluated at each iteration. Step
     param controls number of features dropped at each iteration.
+
+    Params:
+    model: Sklearn model object
+    X: Array-like 
+    y: Array-like
+    cv: Sklearn cross-validation iterator
+    scoring: String
     '''
     def recursive_elim(self, model, X, y, step=10, cv=StratifiedKFold(2), scoring='recall'):
         rfecv = RFECV(estimator=model, step=step, cv=cv, scoring=scoring)
