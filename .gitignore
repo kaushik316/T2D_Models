@@ -144,4 +144,5 @@ org.freedesktop.dbus-session.plist
 * .pyc
 .DS_Store
 
-
+src/auth.py
+* auth.py

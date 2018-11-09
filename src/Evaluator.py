@@ -44,7 +44,7 @@ class Evaluator(object):
     threshold: float
     proba: Boolean 
     '''
-    def summarize_performance(self, model, X, y, threshold=0.5, proba=True):
+    def summarize_performance(self, model, X, y, threshold=0.5, proba=True, return_stats=False):
         if proba:
             predictions = self.predict_class(model, X, threshold)
 
@@ -55,6 +55,9 @@ class Evaluator(object):
         recall = recall_score(y_true=y, y_pred=predictions)
         accuracy = accuracy_score(y_true=y, y_pred=predictions)
         print ("Model Performance:\n Precision: {}\n Recall: {}\n Accuracy: {}".format(precision, recall, accuracy))
+
+        if return_stats:
+            return [precision, recall, accuracy]
 
 
     '''    
@@ -138,6 +141,7 @@ class Evaluator(object):
     cmap: Color scheme for matrix
     """
     def plot_confusion_matrix(self, cm, classes, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues):
+        fig = plt.figure(num=None, figsize=(10, 7), dpi=80)
         plt.imshow(cm, interpolation='nearest', cmap=cmap)
         plt.title(title)
         plt.colorbar()
@@ -202,3 +206,47 @@ class Evaluator(object):
         plt.show()
 
         return rfecv
+
+
+
+    '''
+    Function to compare performance of different models/metrics. 
+    Results and labels should hold arrays of metrics and their names
+    respectively.
+
+    Params:
+    results: Matrix with each row Array-like
+    labels: Array-like
+    xlabel: String
+    ylabel: String
+    titles: Array-like (String titles for each plot)
+    '''
+    def plot_compare(self, results, labels, xlabel, ylabel, titles):
+        num_rows = int(len(results) / 2)
+        num_cols = len(results) - num_rows
+        
+        if (num_rows != num_cols) or len(results) != len(titles):
+            raise ValueError('Number of items in results should be even\
+                                 and equal to number of items in titles')
+        
+        fig, ax = plt.subplots(nrows=num_rows, ncols=num_cols, figsize=(13, 9), dpi=80)
+        fig.subplots_adjust(hspace=0.5)
+        idx=0
+        
+        for r_ind,row in enumerate(ax):
+            for c_ind, col in enumerate(row):
+                col.bar(range(len(results[idx])), [10 * stat for stat in results[idx]], align='center')
+                col.set_title("\n" + titles[idx] + "\n")
+                col.set_ylabel(ylabel)
+                col.set_xticklabels(labels)
+                col.set_xticks(range(len(labels)))
+                col.set_yticklabels(round(10 * i, 3) for i in range(0, 11))
+                col.set_yticks(range(11))
+                
+                for i, v in enumerate(results[idx]):
+                    col.text(i - 0.1, v*10 +0.2 , str(round(v * 100, 1)) + " %", color='white')
+                
+                idx+=1
+                
+        plt.show()
+
