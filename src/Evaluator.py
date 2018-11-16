@@ -3,6 +3,8 @@ import numpy as np
 import itertools
 from sklearn.model_selection import StratifiedKFold
 from sklearn.feature_selection import RFECV
+from sklearn.preprocessing import label_binarize
+from sklearn.multiclass import OneVsRestClassifier
 from sklearn.metrics import roc_curve, auc
 from sklearn.metrics import precision_score, recall_score, accuracy_score
 from matplotlib import pyplot as plt
@@ -32,10 +34,12 @@ class Evaluator(object):
         predictions = [1 if float(sample[1]) > threshold else 0 for sample in logits]
         return predictions
 
-
     '''
     Summarize model performance with precision and recall statistics.
-    Use proba to indicate if predictions are probablities.
+    Use proba to indicate if predictions are probablities and binary to
+    indicate if binary or multiclass prediction. If binary=False, pass 
+    string to average to determine how precision and recall metrics are
+    weighted across classes. See options at sklearn.metrics.recall_score.
 
     Params:
     model: sklearn model object
@@ -43,17 +47,26 @@ class Evaluator(object):
     y: Array-like
     threshold: float
     proba: Boolean 
+    binary: Boolean
+    average: String
+    return_stats: Boolean
     '''
-    def summarize_performance(self, model, X, y, threshold=0.5, proba=True, return_stats=False):
-        if proba:
+    def summarize_performance(self, model, X, y, threshold=0.5, proba=True, binary=True, average=None, return_stats=False):
+        if proba and binary:
             predictions = self.predict_class(model, X, threshold)
 
         else:
             predictions = model.predict(X)
         
-        precision = precision_score(y_true=y, y_pred=predictions)
-        recall = recall_score(y_true=y, y_pred=predictions)
+        if not binary:
+            avg_metric = average
+        else:
+            avg_metric = 'binary'
+
+        precision = precision_score(y_true=y, y_pred=predictions, average=avg_metric)
+        recall = recall_score(y_true=y, y_pred=predictions, average=avg_metric)
         accuracy = accuracy_score(y_true=y, y_pred=predictions)
+
         print ("Model Performance:\n Precision: {}\n Recall: {}\n Accuracy: {}".format(precision, recall, accuracy))
 
         if return_stats:
@@ -89,8 +102,8 @@ class Evaluator(object):
 
 
     '''
-    Display ROC curve and AUC for a given model. Use proba
-    to specify whether the model is 
+    Display ROC curve and AUC for a given model. Use proba to 
+    specify whether the model can predict probablities or not.
 
     Params:
     model: Sklearn or Xgboost model object
@@ -129,9 +142,61 @@ class Evaluator(object):
         plt.show()
 
 
+
+    '''
+    Display ROC curve and AUC for a multiclass classifier, using a one 
+    vs rest approach. Specify the possible classes and wrap the model 
+    in a OneVsRestClassifier classifier to generate individual curves 
+    for each class. 
+
+    Params:
+    model: Sklearn or Xgboost model object
+    X: Array-like
+    y: Array-like
+    classes: Array-like
+    '''
+    def plot_roc_curve(self, model, Xtrain, ytrain, Xtest, ytest, classes):
+        ytrain = label_binarize(ytrain, classes=[0,1,2,3])
+        ytest = label_binarize(ytest, classes=[0,1,2,3])
+        n_classes=len(classes)
+
+        clf = OneVsRestClassifier(model)
+        yscore = clf.fit(Xtrain, ytrain).decision_function(Xtest)
+
+        # Compute ROC curve and ROC area for each class
+        fpr = dict()
+        tpr = dict()
+        roc_auc = dict()
+
+        for i in range(n_classes):
+            fpr[i], tpr[i], _ = roc_curve(ytest[:, i], yscore[:, i])
+            roc_auc[i] = auc(fpr[i], tpr[i])
+        
+        # Store number of rows and cols to create subplots
+        nrows = round((len(classes)/2))
+        ncols = 2
+        
+        fig, ax = plt.subplots(nrows=nrows, ncols=ncols, figsize=(13, 9), dpi=80)
+        fig.subplots_adjust(hspace=0.5)
+        idx=0
+
+        for r_ind,row in enumerate(ax):
+            for c_ind, col in enumerate(row):
+                    col.plot(fpr[idx], tpr[idx], label='ROC curve (area = %0.2f)' % roc_auc[idx])
+                    col.plot([0, 1], [0, 1], 'k--')
+                    col.set_xlim([0.0, 1.0])
+                    col.set_ylim([0.0, 1.05])
+                    col.set_xlabel('False Positive Rate')
+                    col.set_ylabel('True Positive Rate')
+                    col.set_title("\n" + "ROC Curve for class " + str() + "\n")
+                    col.legend(loc="lower right")
+                    idx+=1 
+
+
+
     """
-    This function prints and plots the confusion matrix. 
-    Normalization can be applied by setting `normalize=True`.
+    This function prints and plots the confusion matrix. Normalization 
+    can be applied by setting `normalize=True`.
 
     Params: 
     cm: Sklearn confusion matrix object
@@ -210,9 +275,8 @@ class Evaluator(object):
 
 
     '''
-    Function to compare performance of different models/metrics. 
-    Results and labels should hold arrays of metrics and their names
-    respectively.
+    Function to compare performance of different models/metrics. Results
+    and labels should hold arrays of metrics and their names respectively.
 
     Params:
     results: Matrix with each row Array-like
@@ -220,33 +284,37 @@ class Evaluator(object):
     xlabel: String
     ylabel: String
     titles: Array-like (String titles for each plot)
+    percentages: Boolean
     '''
-    def plot_compare(self, results, labels, xlabel, ylabel, titles):
+    def plot_compare(results, labels, xlabel, ylabel, titles, percentages=True):
         num_rows = int(len(results) / 2)
         num_cols = len(results) - num_rows
-        
+
         if (num_rows != num_cols) or len(results) != len(titles):
             raise ValueError('Number of items in results should be even\
                                  and equal to number of items in titles')
-        
+
         fig, ax = plt.subplots(nrows=num_rows, ncols=num_cols, figsize=(13, 9), dpi=80)
         fig.subplots_adjust(hspace=0.5)
         idx=0
-        
+
         for r_ind,row in enumerate(ax):
             for c_ind, col in enumerate(row):
                 col.bar(range(len(results[idx])), [10 * stat for stat in results[idx]], align='center')
                 col.set_title("\n" + titles[idx] + "\n")
                 col.set_ylabel(ylabel)
-                col.set_xticklabels(labels)
-                col.set_xticks(range(len(labels)))
+                col.set_xticklabels(labels[idx])
+                col.set_xticks(range(len(labels[idx])))
                 col.set_yticklabels(round(10 * i, 3) for i in range(0, 11))
                 col.set_yticks(range(11))
-                
-                for i, v in enumerate(results[idx]):
-                    col.text(i - 0.1, v*10 +0.2 , str(round(v * 100, 1)) + " %", color='white')
-                
-                idx+=1
-                
-        plt.show()
 
+                for i, v in enumerate(results[idx]):
+                    if percentages:
+                        col.text(i - 0.1, v*10 +0.2 , str(round(v * 100, 1)) + " %", color='white')
+                    else:
+                        col.text(i - 0.1, v*10 + 0.2 , str(round(v, 2)) , color='white')
+                        
+
+                idx+=1
+
+        plt.show()
