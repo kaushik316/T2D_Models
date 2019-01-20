@@ -146,3 +146,6 @@ org.freedesktop.dbus-session.plist
 
 src/auth.py
 * auth.py
+src/multilabel_data_readme.txt
+src/notebooks/Clustering.ipynb
+

@@ -34,6 +34,7 @@ class Evaluator(object):
         predictions = [1 if float(sample[1]) > threshold else 0 for sample in logits]
         return predictions
 
+
     '''
     Summarize model performance with precision and recall statistics.
     Use proba to indicate if predictions are probablities and binary to
@@ -51,14 +52,15 @@ class Evaluator(object):
     average: String
     return_stats: Boolean
     '''
-    def summarize_performance(self, model, X, y, threshold=0.5, proba=True, binary=True, average=None, return_stats=False):
-        if proba and binary:
+    def summarize_performance(self, model, X, y, threshold=0.5, proba=True, average=None, return_stats=False, multilabel=False):
+        if proba and average is None:
             predictions = self.predict_class(model, X, threshold)
 
         else:
             predictions = model.predict(X)
         
-        if not binary:
+        # precision & recall need to be averaged across classes for multiclass problem 
+        if average is not None:
             avg_metric = average
         else:
             avg_metric = 'binary'
@@ -67,10 +69,138 @@ class Evaluator(object):
         recall = recall_score(y_true=y, y_pred=predictions, average=avg_metric)
         accuracy = accuracy_score(y_true=y, y_pred=predictions)
 
-        print ("Model Performance:\n Precision: {}\n Recall: {}\n Accuracy: {}".format(precision, recall, accuracy))
+        print("Model Performance:\n Precision: {}\n Recall: {}\n Accuracy: {}".format(precision, recall, accuracy))
 
         if return_stats:
             return [precision, recall, accuracy]
+
+
+
+    '''
+    Function to calculate the recall scores for each class in 
+    a multilabel classification problem. Returns an array 
+    representing recall for each class. 
+
+    Params:
+    ytest: Array-like
+    predictions: Array-like
+    '''
+
+    def multilabel_recall(self, ytest, predictions):
+        # Convert to numpy arrays
+        ytest = np.asarray(ytest)
+        predictions = np.asarray(predictions)
+
+        # Create a dictionary to hold 
+        n_classes = len(ytest[0])
+        sample_counts = {'total_true': 0 ,'total_predicted': 0}
+        recall_scores = {label: sample_counts.copy() for label in range(0, n_classes)}
+
+        # Check consistency of arrays passed in 
+        assert ytest.shape[0] == predictions.shape[0]
+        assert ytest.shape[1] == predictions.shape[1]
+
+        for index, row in enumerate(ytest):
+
+            # Get indices of positive labels and predicted positives
+            true_pos = set( np.where(ytest[index])[0] )
+            predicted_pos = set ( np.where(predictions[index])[0] )
+
+            for i in range(0, n_classes):
+                if i in true_pos:
+                    recall_scores[i]['total_true'] += 1
+
+                    if i in predicted_pos:
+                        recall_scores[i]['total_predicted'] += 1
+        
+        score_list = []
+
+        for label in recall_scores:
+            try:
+                score_list.append(recall_scores[label]['total_predicted'] /
+                              recall_scores[label]['total_true'])
+
+            except ZeroDivisionError: 
+                score_list.append(0)
+
+        return score_list
+
+
+
+    '''
+    Function to calculate the recall scores for each class in 
+    a multilabel classification problem. Returns an array 
+    representing recall for each class. 
+
+    Params:
+    ytest: Array-like
+    predictions: Array-like
+    '''
+    def multilabel_precision(self, ytest, predictions):
+        # Convert to numpy arrays
+        ytest = np.asarray(ytest)
+        predictions = np.asarray(predictions)
+
+        # Create a dictionary to hold 
+        n_classes = len(ytest[0])
+        sample_counts = {'total_correct': 0 ,'total_predicted': 0}
+        precision_scores = {label: sample_counts.copy() for label in range(0, n_classes)}
+
+        # Check consistency of arrays passed in 
+        assert ytest.shape[0] == predictions.shape[0]
+        assert ytest.shape[1] == predictions.shape[1]
+
+        for index, row in enumerate(ytest):
+
+            # Get indices of positive labels and predicted positives
+            true_pos = set( np.where(ytest[index])[0] )
+            predicted_pos = set ( np.where(predictions[index])[0] )
+
+            for i in range(0, n_classes):
+                if i in predicted_pos:
+                    precision_scores[i]['total_predicted'] += 1
+
+                    if i in true_pos:
+                        precision_scores[i]['total_correct'] += 1
+
+        score_list = []
+
+        for label in precision_scores:
+            try:    
+                score_list.append(precision_scores[label]['total_correct'] /
+                              precision_scores[label]['total_predicted'])
+            
+            except ZeroDivisionError: 
+                score_list.append(0)
+
+        return score_list
+
+
+    '''
+    For multilabel problems, using subset accuracy can be a harsh metric since it requires an exact match
+    between the label vectors. The hamming score gives credit for partially matchin label vectors, i.e if the
+    model predicts some but not all of the labels correctly. 
+    '''
+    def hamming_score(self, y_true, y_pred, normalize=True, sample_weight=None):
+        y_true = np.asarray(y_true)
+        y_pred = np.asarray(y_pred)
+        acc_list = []
+        
+        for index, value in enumerate(y_true):
+            # Return indices where the label == 1
+            set_true = set( np.where(y_true[index])[0] )
+            
+            set_pred = set( np.where(y_pred[index])[0] )
+            row_acc = None
+            
+            # Hamming score equation for a given sample
+            if len(set_true) == 0 and len(set_pred) == 0:
+                row_acc = 1
+            else:
+                row_acc = len(set_true.intersection(set_pred)) / float(len(set_true.union(set_pred)))
+            acc_list.append(row_acc)
+            
+        return np.mean(acc_list)
 
 
     '''    
@@ -155,13 +285,14 @@ class Evaluator(object):
     y: Array-like
     classes: Array-like
     '''
-    def plot_roc_curve(self, model, Xtrain, ytrain, Xtest, ytest, classes):
-        ytrain = label_binarize(ytrain, classes=[0,1,2,3])
-        ytest = label_binarize(ytest, classes=[0,1,2,3])
+    def plot_mcroc_curve(self, model, Xtrain, ytrain, Xtest, ytest, classes):
+        ytrain = label_binarize(ytrain, classes=classes)
+        ytest = label_binarize(ytest, classes=classes)
         n_classes=len(classes)
 
         clf = OneVsRestClassifier(model)
-        yscore = clf.fit(Xtrain, ytrain).decision_function(Xtest)
+        clf.fit(Xtrain, ytrain)
+        yscore = clf.predict_proba(Xtest)
 
         # Compute ROC curve and ROC area for each class
         fpr = dict()
@@ -188,7 +319,7 @@ class Evaluator(object):
                     col.set_ylim([0.0, 1.05])
                     col.set_xlabel('False Positive Rate')
                     col.set_ylabel('True Positive Rate')
-                    col.set_title("\n" + "ROC Curve for class " + str() + "\n")
+                    col.set_title("\n" + "ROC Curve for class " + str(idx) + "\n")
                     col.legend(loc="lower right")
                     idx+=1 
 
@@ -286,11 +417,11 @@ class Evaluator(object):
     titles: Array-like (String titles for each plot)
     percentages: Boolean
     '''
-    def plot_compare(results, labels, xlabel, ylabel, titles, percentages=True):
+    def plot_compare(self, results, labels, xlabel, ylabel, titles, percentages=True):
         num_rows = int(len(results) / 2)
-        num_cols = len(results) - num_rows
+        num_cols = 2
 
-        if (num_rows != num_cols) or len(results) != len(titles):
+        if  len(results) != len(titles):
             raise ValueError('Number of items in results should be even\
                                  and equal to number of items in titles')
 
@@ -300,11 +431,13 @@ class Evaluator(object):
 
         for r_ind,row in enumerate(ax):
             for c_ind, col in enumerate(row):
+                if idx > len(labels):
+                    break
                 col.bar(range(len(results[idx])), [10 * stat for stat in results[idx]], align='center')
                 col.set_title("\n" + titles[idx] + "\n")
                 col.set_ylabel(ylabel)
-                col.set_xticklabels(labels[idx])
-                col.set_xticks(range(len(labels[idx])))
+                col.set_xticklabels(labels)
+                col.set_xticks(range(len(labels)))
                 col.set_yticklabels(round(10 * i, 3) for i in range(0, 11))
                 col.set_yticks(range(11))
 
@@ -313,7 +446,7 @@ class Evaluator(object):
                         col.text(i - 0.1, v*10 +0.2 , str(round(v * 100, 1)) + " %", color='white')
                     else:
                         col.text(i - 0.1, v*10 + 0.2 , str(round(v, 2)) , color='white')
-                        
+
 
                 idx+=1
 
