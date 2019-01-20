@@ -19,7 +19,7 @@ Activate anaconda environment:
 source activate t2d_model
 ```
 
-Once the environment is activated, you can use the jupyter notebooks to run through the workflow.
+Once the environment is activated, you can use the jupyter notebooks to run through the workflow. Change directory into src/notebooks/ and execute `jupyter notebook` from the command line.
 
 ### Notebooks
   * Feature Selection: Configure filepath and then use to create and save feature-selected datasets. Currently configured to store files in an S3 bucket, change this to store to your bucket or a local drive by editing the outpath and replacing write_to_S3 functions with write_to_local. 
