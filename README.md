@@ -4,7 +4,7 @@ A reusable machine learning pipeline that can be used for binary, multiclass or 
 ### Setup
 Clone repository or download .yml file. Ensure anaconda is installed. To install an anaconda environment from a .yml through the command line:
 
-Create environment
+Create environment:
 ```
 conda env create -f t2d_model.yml
 ```
@@ -14,7 +14,7 @@ Verify all packages were installed with:
 conda list
 ```
 
-Activate anaconda environment
+Activate anaconda environment:
 ```
 source activate t2d_model
 ```
