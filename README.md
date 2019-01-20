@@ -20,5 +20,11 @@ Once the environment is activated, you can use the jupyter notebooks to run thro
 # Notebooks
 *Feature Selection: Configure filepath and then use to create and save feature-selected datasets. Currently configured to store files in an S3 bucket, change this to store to your bucket or a local drive by editing the outpath and replacing write_to_S3 functions with write_to_local. 
 
-*One Vs Rest Model Evaluation: 
+*Clustering: Exploratory clustering of data to detect patterns prior to classification
 
+*One Vs Rest Model Evaluation: Runs multiple sklearn models on the training data and compares their performance on test data. Configure filepaths for input data before running. 
+
+*Multilabel Model Evaluation: Similar to One Vs Rest Notebook except for multilabel problems. 
+
+# Classes:
+`Evaluator.py` is a helper class for plotting and evaluating model performance. Documentation for methods is contained in the python file. 
