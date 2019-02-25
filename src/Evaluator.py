@@ -52,7 +52,7 @@ class Evaluator(object):
     average: String
     return_stats: Boolean
     '''
-    def summarize_performance(self, model, X, y, threshold=0.5, proba=True, average=None, return_stats=False, multilabel=False):
+    def summarize_performance(self, model, X, y, threshold=0.5, proba=True, average=None, return_stats=False, multilabel=False, plot=False):
         if proba and average is None:
             predictions = self.predict_class(model, X, threshold)
 
@@ -70,7 +70,12 @@ class Evaluator(object):
         accuracy = accuracy_score(y_true=y, y_pred=predictions)
 
         print("Model Performance:\n Precision: {}\n Recall: {}\n Accuracy: {}".format(precision, recall, accuracy))
-
+        
+        if plot:
+            plt.bar(["Precision", "Recall", "Accuracy"], [precision, recall, accuracy])
+            plt.title("Model Performance")
+            plt.show()
+        
         if return_stats:
             return [precision, recall, accuracy]
 
@@ -228,7 +233,7 @@ class Evaluator(object):
         plt.ylabel("features")
         plt.show()
 
-        return names[:-n]
+        return names[-n:]
 
 
     '''
@@ -443,7 +448,7 @@ class Evaluator(object):
 
                 for i, v in enumerate(results[idx]):
                     if percentages:
-                        col.text(i - 0.1, v*10 +0.2 , str(round(v * 100, 1)) + " %", color='white')
+                        col.text(i - 0.1, v*10 +0.2 , str(round(v * 100, 1)) + " %", color='black')
                     else:
                         col.text(i - 0.1, v*10 + 0.2 , str(round(v, 2)) , color='white')
 
