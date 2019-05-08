@@ -24,7 +24,7 @@ Once the environment is activated, you can use the jupyter notebooks to run thro
 Note: If you don't want to use anaconda, you will need to ensure that all packages in requirements.txt are installed in your virtual environment or globally if you are not using a virtual environment. 
 
 ### Notebooks
-  * Feature Selection: Configure filepath and then use to create and save feature-selected datasets. Currently configured to store files in an S3 bucket, change this to store to your bucket or a local drive by editing the outpath and replacing write_to_S3 functions with write_to_local. 
+  * Feature Selection: Configure filepath and then use to create and save feature-selected datasets. Currently configured to store files in an S3 bucket, change this to store to your bucket or a local drive by editing the outpath and replacing `write_to_S3` functions with `write_to_local`. 
 
   * Clustering: Exploratory clustering of data to detect patterns prior to classification
 
