@@ -29,6 +29,7 @@ Once the environment is activated, you can use the jupyter notebooks to run thro
   * One Vs Rest Model Evaluation: Runs multiple sklearn models on the training data and compares their performance on test data. Configure filepaths for input data before running. 
 
   * Multilabel Model Evaluation: Similar to One Vs Rest Notebook except for multilabel problems. 
+  * Trait vs Trait:  Used to compare two distinct sets of traits (e.g, blood traits vs metabolic traits) in order to determine whether a machine learning classfier can learn to distinguish between the two sets, provided an aggregated dataset.
 
 ### Classes:
 `Evaluator.py` is a helper class for plotting and evaluating model performance. Documentation for methods is contained in the python file. 
